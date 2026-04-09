@@ -48,9 +48,12 @@ python3 -m server.auth --setup
 
 This opens a browser for OAuth consent. A refresh token is saved to `~/.config/gdocs-mcp/credentials.json` (mode 0600).
 
-### 4. Install as a Cowork plugin
+### 4. Connect to Claude
 
-Add this to your Claude desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
+Add the MCP server to your Claude desktop config.
+
+**macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 
 ```json
 {
@@ -66,7 +69,7 @@ Add this to your Claude desktop config (`~/Library/Application Support/Claude/cl
 
 Replace the `cwd` path with wherever you cloned the repo. Restart Claude for changes to take effect.
 
-Alternatively, copy or symlink the repo directory into your Cowork plugins folder — the `.mcp.json` and `.claude-plugin/plugin.json` handle registration automatically.
+> **Note:** This is a local MCP server, not a marketplace plugin. It connects to Claude via stdio transport and works with both Claude Desktop and Claude Code.
 
 ## Architecture
 
