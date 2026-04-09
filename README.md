@@ -22,20 +22,25 @@ Nine tools exposed over the [Model Context Protocol](https://modelcontextprotoco
 
 ### 1. GCP project
 
-Enable the **Google Docs API** and **Google Drive API** in [GCP Console](https://console.cloud.google.com/apis/library), then create an OAuth 2.0 Desktop client and download the JSON. See [CONNECTORS.md](CONNECTORS.md) for the full walkthrough.
+1. Go to [GCP Console → APIs & Services → Library](https://console.cloud.google.com/apis/library) and enable the **Google Docs API** and **Google Drive API**.
+2. Go to [APIs & Services → Credentials](https://console.cloud.google.com/apis/credentials) and click **Create credentials → OAuth client ID**.
+3. Select **Desktop app** as the application type (not "Web application" — the auth flow uses `localhost` redirects that only work with Desktop clients).
+4. Click **Download JSON** on the confirmation dialog. This is your `client_secret.json`. The file should have `"installed"` as the top-level key, not `"web"`.
+
+If your project doesn't have an OAuth consent screen configured yet, you'll need to set one up first under [OAuth consent screen](https://console.cloud.google.com/apis/credentials/consent). For personal use, "External" with "Testing" status works fine — just add your Google account as a test user.
+
+See [CONNECTORS.md](CONNECTORS.md) for a more detailed walkthrough.
 
 ### 2. Install
+
+Use a virtual environment — on macOS with Homebrew Python, system-wide pip installs are blocked by default.
 
 ```bash
 git clone https://github.com/sashakang/google-docs-cowork-plugin.git
 cd google-docs-cowork-plugin
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e .
-```
-
-Or install dependencies directly:
-
-```bash
-pip install -r requirements.txt
 ```
 
 ### 3. Authenticate
@@ -43,10 +48,11 @@ pip install -r requirements.txt
 ```bash
 mkdir -p ~/.config/gdocs-mcp
 cp /path/to/client_secret_*.json ~/.config/gdocs-mcp/client_secret.json
+source .venv/bin/activate
 python3 -m server.auth --setup
 ```
 
-This opens a browser for OAuth consent. A refresh token is saved to `~/.config/gdocs-mcp/credentials.json` (mode 0600).
+This opens a browser for OAuth consent. Sign in with the Google account you want to use for creating and editing docs. A refresh token is saved to `~/.config/gdocs-mcp/credentials.json` (mode 0600).
 
 ### 4. Connect to Claude
 
@@ -59,17 +65,27 @@ Add the MCP server to your Claude desktop config.
 {
   "mcpServers": {
     "google-docs": {
-      "command": "python3",
-      "args": ["-m", "server.main"],
+      "command": "bash",
+      "args": ["-c", "source /absolute/path/to/google-docs-cowork-plugin/.venv/bin/activate && python3 -m server.main"],
       "cwd": "/absolute/path/to/google-docs-cowork-plugin"
     }
   }
 }
 ```
 
-Replace the `cwd` path with wherever you cloned the repo. Restart Claude for changes to take effect.
+Replace `/absolute/path/to/google-docs-cowork-plugin` with the actual path where you cloned the repo. Restart Claude for changes to take effect.
 
 > **Note:** This is a local MCP server, not a marketplace plugin. It connects to Claude via stdio transport and works with both Claude Desktop and Claude Code.
+
+### Troubleshooting
+
+**`externally-managed-environment` error during pip install** — You're using Homebrew Python on macOS, which blocks system-wide installs. Use a virtual environment as shown in step 2.
+
+**`redirect_uri_mismatch` error during auth** — Your `client_secret.json` is from a "Web application" client instead of a "Desktop app" client. The top-level key should be `"installed"`, not `"web"`. Create a new Desktop client in GCP Console.
+
+**`Server disconnected` in Claude** — Check the MCP server log at `~/Library/Logs/Claude/mcp-server-google-docs.log` for the actual error. Common causes: wrong Python path, missing venv activation, or import errors.
+
+**Auth flow doesn't open browser** — Make sure you're running the auth command from an interactive terminal, not a background process. The OAuth flow needs to open your default browser.
 
 ## Architecture
 
