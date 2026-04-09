@@ -85,7 +85,7 @@ class SlidesClient(WorkspaceClient):
         """Add a new slide with the specified layout."""
         if layout not in VALID_LAYOUTS:
             raise ValueError(
-                f"Unknown layout: '{layout}'. Use one of: {sorted(valid_layouts)}"
+                f"Unknown layout: '{layout}'. Use one of: {sorted(VALID_LAYOUTS)}"
             )
 
         request: dict = {

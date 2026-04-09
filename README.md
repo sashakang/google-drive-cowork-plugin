@@ -1,10 +1,12 @@
 # google-docs-cowork-plugin
 
-MCP server that lets [Claude Cowork](https://claude.ai) create and edit native Google Docs. Runs as a local stdio process — no hosted backend.
+MCP server that lets [Claude Cowork](https://claude.ai) create and edit Google Docs, Sheets, and Slides. Runs as a local stdio process — no hosted backend.
 
 ## What it does
 
-Nine tools exposed over the [Model Context Protocol](https://modelcontextprotocol.io):
+22 tools exposed over the [Model Context Protocol](https://modelcontextprotocol.io):
+
+### Google Docs (9 tools)
 
 | Tool | Purpose |
 |------|---------|
@@ -18,31 +20,82 @@ Nine tools exposed over the [Model Context Protocol](https://modelcontextprotoco
 | `share_doc` | Share with email recipients |
 | `move_doc` | Move to a Drive folder |
 
+### Google Sheets (7 tools)
+
+| Tool | Purpose |
+|------|---------|
+| `sheets_create` | Create a new spreadsheet |
+| `sheets_get` | Read metadata, tabs, named ranges |
+| `sheets_read` | Read cell values from a range |
+| `sheets_write` | Write values (atomic batch) |
+| `sheets_format` | Apply formatting via batchUpdate |
+| `sheets_manage_tabs` | Add, rename, delete, freeze tabs |
+| `sheets_create_chart` | Create embedded charts |
+
+### Google Slides (6 tools)
+
+| Tool | Purpose |
+|------|---------|
+| `slides_create` | Create a new presentation |
+| `slides_get` | Read presentation structure |
+| `slides_get_content` | Read text from a specific slide |
+| `slides_add_slide` | Add slide with layout |
+| `slides_update` | Apply batchUpdate requests |
+| `slides_insert_image` | Insert image from URL |
+
 ## Setup
 
 ### 1. GCP project
 
-Enable the **Google Docs API** and **Google Drive API** in [GCP Console](https://console.cloud.google.com/apis/library), then create an OAuth 2.0 Desktop client and download the JSON. See [CONNECTORS.md](CONNECTORS.md) for the full walkthrough.
+Enable these four APIs in [GCP Console → APIs & Services → Library](https://console.cloud.google.com/apis/library):
+
+- **Google Docs API**
+- **Google Drive API**
+- **Google Sheets API**
+- **Google Slides API**
+
+Then create an **OAuth 2.0 Desktop client** (not "Web application") and note the client ID and secret. See [CONNECTORS.md](CONNECTORS.md) for the full walkthrough.
+
+> **Important:** You must select **Desktop app** as the application type. "Web application" will not work with the local OAuth flow.
 
 ### 2. Install
+
+A virtual environment is required (especially on macOS with Homebrew Python):
 
 ```bash
 git clone https://github.com/sashakang/google-docs-cowork-plugin.git
 cd google-docs-cowork-plugin
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e .
-```
-
-Or install dependencies directly:
-
-```bash
-pip install -r requirements.txt
 ```
 
 ### 3. Authenticate
 
 ```bash
 mkdir -p ~/.config/gdocs-mcp
-cp /path/to/client_secret_*.json ~/.config/gdocs-mcp/client_secret.json
+```
+
+Create `~/.config/gdocs-mcp/client_secret.json` with your Desktop client credentials:
+
+```json
+{
+  "installed": {
+    "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
+    "client_secret": "YOUR_CLIENT_SECRET",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "redirect_uris": ["http://localhost"]
+  }
+}
+```
+
+> **Note:** The top-level key must be `"installed"` (not `"web"`).
+
+Then run the auth setup (with the venv active):
+
+```bash
+source .venv/bin/activate
 python3 -m server.auth --setup
 ```
 
@@ -59,15 +112,15 @@ Add the MCP server to your Claude desktop config.
 {
   "mcpServers": {
     "google-docs": {
-      "command": "python3",
-      "args": ["-m", "server.main"],
+      "command": "bash",
+      "args": ["-c", "source /absolute/path/to/google-docs-cowork-plugin/.venv/bin/activate && python3 -m server.main"],
       "cwd": "/absolute/path/to/google-docs-cowork-plugin"
     }
   }
 }
 ```
 
-Replace the `cwd` path with wherever you cloned the repo. Restart Claude for changes to take effect.
+Replace the paths with wherever you cloned the repo. The `bash -c` wrapper is needed to activate the venv before starting the server. Restart Claude for changes to take effect.
 
 > **Note:** This is a local MCP server, not a marketplace plugin. It connects to Claude via stdio transport and works with both Claude Desktop and Claude Code.
 
@@ -77,8 +130,10 @@ Replace the `cwd` path with wherever you cloned the repo. Restart Claude for cha
 Claude Cowork
   └─ MCP (stdio transport)
        └─ python3 -m server.main
-            ├─ Google Docs API v1  (content operations)
-            └─ Google Drive API v3 (folders, sharing)
+            ├─ Google Docs API v1    (document operations)
+            ├─ Google Drive API v3   (folders, sharing)
+            ├─ Google Sheets API v4  (spreadsheet operations)
+            └─ Google Slides API v1  (presentation operations)
 ```
 
 All state lives in `~/.config/gdocs-mcp/`:
@@ -121,17 +176,40 @@ Create `~/.config/gdocs-mcp/config.json` to restrict operations:
 
 Empty arrays (or no file) means allow all.
 
+## Troubleshooting
+
+**"Server disconnected" in Claude:**
+Check the MCP log at `~/Library/Logs/Claude/mcp-server-google-docs.log`. Common causes:
+- Wrong Python (must use venv): use the `bash -c` config shown above
+- `TypeError: Server.run() missing ... initialization_options`: update `mcp` package in venv
+
+**"Credential scopes outdated":**
+The server now needs 4 scopes (docs, drive, sheets, presentations). Re-run `python3 -m server.auth --setup` to re-authorize.
+
+**"redirect_uri_mismatch":**
+Your OAuth client must be a **Desktop** type (not Web). The `redirect_uris` should be `["http://localhost"]`.
+
+**"externally-managed-environment":**
+You're using Homebrew Python without a venv. Activate the venv first: `source .venv/bin/activate`.
+
 ## Project structure
 
 ```
 server/
-  main.py       — MCP server, tool definitions, dispatch
-  docs_api.py   — Google Docs API client
-  drive_api.py  — Google Drive API client
-  auth.py       — OAuth 2.0 credential management
-  config.py     — Policy enforcement (allowlists, TTL cache)
-  errors.py     — Typed exceptions + shared HTTP error handler
-  paths.py      — Centralized path constants
+  main.py           — MCP server, tool routing, dispatch
+  docs_api.py       — Google Docs API client
+  drive_api.py      — Google Drive API client
+  sheets_api.py     — Google Sheets API client
+  slides_api.py     — Google Slides API client
+  workspace_client.py — Base class for all API clients
+  auth.py           — OAuth 2.0 credential management
+  config.py         — Policy enforcement (allowlists, TTL cache)
+  errors.py         — Typed exceptions + shared HTTP error handler
+  paths.py          — Centralized path constants
+  tools/
+    docs.py         — Docs tool definitions and dispatch
+    sheets.py       — Sheets tool definitions and dispatch
+    slides.py       — Slides tool definitions and dispatch
 skills/
   google-docs/SKILL.md  — LLM skill definition
 commands/

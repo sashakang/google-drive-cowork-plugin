@@ -180,7 +180,7 @@ def _dispatch(name: str, args: dict) -> dict:
 async def main():
     AUDIT_LOG.parent.mkdir(parents=True, exist_ok=True)
     async with stdio_server() as (read_stream, write_stream):
-        await app.run(read_stream, write_stream)
+        await app.run(read_stream, write_stream, app.create_initialization_options())
 
 
 if __name__ == "__main__":

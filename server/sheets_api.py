@@ -69,6 +69,7 @@ class SheetsClient(WorkspaceClient):
         for sheet in result.get("sheets", []):
             props = sheet.get("properties", {})
             info: dict = {
+                "sheetId": props.get("sheetId", 0),
                 "title": props.get("title", ""),
                 "index": props.get("index", 0),
                 "rowCount": props.get("gridProperties", {}).get("rowCount", 0),
