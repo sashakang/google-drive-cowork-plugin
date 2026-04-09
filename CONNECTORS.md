@@ -1,18 +1,20 @@
-# Google Docs Plugin — GCP Setup
+# Google Workspace Plugin — GCP Setup
 
 ## Prerequisites
 
-- A Google Cloud Platform project (e.g., `ai-analytics-helper`)
+- A Google Cloud Platform project
 - Python 3.10+
 
 ## Setup Steps
 
 ### 1. Enable APIs
 
-Go to [GCP Console → APIs & Services](https://console.cloud.google.com/apis/library):
+Go to [GCP Console → APIs & Services](https://console.cloud.google.com/apis/library) and enable:
 
-- Enable **Google Docs API**
-- Enable **Google Drive API**
+- **Google Docs API**
+- **Google Drive API**
+- **Google Sheets API**
+- **Google Slides API**
 
 ### 2. Create OAuth 2.0 Client
 
@@ -33,18 +35,21 @@ mv ~/Downloads/client_secret_*.json ~/.config/gdocs-mcp/client_secret.json
 ### 4. Install dependencies
 
 ```bash
-cd /path/to/google-docs/
+cd /path/to/google-drive-cowork-mcp/
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
 ### 5. Authenticate
 
 ```bash
-cd /path/to/google-docs/
+cd /path/to/google-drive-cowork-mcp/
+source .venv/bin/activate
 python3 -m server.auth --setup
 ```
 
-This opens a browser for OAuth consent. After approval, a refresh token is saved to `~/.config/gdocs-mcp/credentials.json`.
+This opens a browser for OAuth consent. After approval, a refresh token is saved to `~/.config/gdocs-mcp/credentials.json`. The token covers all four scopes (Docs, Drive, Sheets, Slides).
 
 ### 6. (Optional) Configure restrictions
 
@@ -53,7 +58,7 @@ Create `~/.config/gdocs-mcp/config.json`:
 ```json
 {
   "allowed_folder_ids": ["1ABC...xyz"],
-  "allowed_sharing_domains": ["indriver.com"]
+  "allowed_sharing_domains": ["example.com"]
 }
 ```
 
@@ -66,6 +71,8 @@ Create `~/.config/gdocs-mcp/config.json`:
 |---------|----------|
 | `AuthError: No credentials found` | Run `python3 -m server.auth --setup` |
 | `AuthError: Token refresh failed` | Token may be revoked. Re-run `--setup` |
+| `AuthError: Missing scopes` | New scopes added since last auth. Re-run `--setup` |
 | `FileNotFoundError: client_secret.json` | Download OAuth client JSON from GCP Console |
 | `ConfigError: Folder not in allowlist` | Add the folder ID to `config.json` or remove the allowlist |
-| `PermissionDeniedError` | Verify you have edit access to the document |
+| `PermissionDeniedError` | Verify you have edit access to the document/sheet/presentation |
+| API not enabled error | Enable the missing API in GCP Console (step 1) |
