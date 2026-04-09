@@ -5,24 +5,11 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from tenacity import retry, stop_after_attempt, wait_exponential
-
-from .auth import get_credentials
 from .errors import (
     AmbiguousSectionError,
-    NotFoundError,
     SectionNotFoundError,
-    handle_http_error,
 )
-
-# Shared retry configuration — 3 attempts, exponential backoff 2-10s
-RETRY_CONFIG = dict(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=2, max=10),
-    reraise=True,
-)
+from .workspace_client import WorkspaceClient
 
 
 @dataclass
@@ -34,20 +21,9 @@ class SectionRange:
     body_start: int
 
 
-class DocsClient:
+class DocsClient(WorkspaceClient):
     def __init__(self):
-        creds = get_credentials()
-        self.service = build("docs", "v1", credentials=creds)
-
-    @retry(**RETRY_CONFIG)
-    def _execute(self, request):
-        """Execute an API request with retry on transient errors."""
-        try:
-            return request.execute()
-        except HttpError as e:
-            if e.resp.status in (429, 500, 502, 503):
-                raise  # Retry
-            handle_http_error(e)
+        super().__init__("docs", "v1")
 
     def create(self, title: str) -> dict:
         if not title or not title.strip():

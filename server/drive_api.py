@@ -1,46 +1,34 @@
-"""Google Drive API operations."""
+"""Google Drive API operations (shared across all services)."""
 
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-
-from .auth import get_credentials
 from .config import validate_folder, validate_sharing_domain
-from .docs_api import RETRY_CONFIG
-from .errors import ConfigError, handle_http_error
-
-from tenacity import retry
+from .errors import ConfigError
+from .workspace_client import WorkspaceClient
 
 
-class DriveClient:
+class DriveClient(WorkspaceClient):
     def __init__(self):
-        creds = get_credentials()
-        self.service = build("drive", "v3", credentials=creds)
+        super().__init__("drive", "v3")
 
-    @retry(**RETRY_CONFIG)
     def move_to_folder(self, file_id: str, folder_id: str) -> dict:
         if not validate_folder(folder_id):
             raise ConfigError(f"Folder {folder_id} not in allowlist.")
 
-        try:
-            file = self.service.files().get(
-                fileId=file_id, fields="parents"
-            ).execute()
-            previous_parents = ",".join(file.get("parents", []))
+        file = self._execute(
+            self.service.files().get(fileId=file_id, fields="parents")
+        )
+        previous_parents = ",".join(file.get("parents", []))
 
+        self._execute(
             self.service.files().update(
                 fileId=file_id,
                 addParents=folder_id,
                 removeParents=previous_parents,
                 fields="id, parents",
-            ).execute()
-        except HttpError as e:
-            if e.resp.status in (429, 500, 502, 503):
-                raise  # Retry
-            handle_http_error(e)
+            )
+        )
 
         return {"status": "ok", "file_id": file_id, "new_folder": folder_id}
 
-    @retry(**RETRY_CONFIG)
     def share(
         self,
         file_id: str,
@@ -55,16 +43,13 @@ class DriveClient:
                     f"Domain of {email} not in allowed sharing domains."
                 )
             permission = {"type": "user", "role": role, "emailAddress": email}
-            try:
-                result = self.service.permissions().create(
+            result = self._execute(
+                self.service.permissions().create(
                     fileId=file_id,
                     body=permission,
                     sendNotificationEmail=send_notification,
                     fields="id",
-                ).execute()
-            except HttpError as e:
-                if e.resp.status in (429, 500, 502, 503):
-                    raise  # Retry
-                handle_http_error(e)
+                )
+            )
             results.append({"email": email, "permission_id": result["id"]})
         return {"status": "ok", "shared_with": results}

@@ -5,7 +5,7 @@ description: >
   Google Docs. Triggers: "create a Google Doc", "write to Google Docs",
   "update the doc", "add a section to our doc", "share the document",
   "move doc to folder". Do NOT use for .docx files (use docx skill)
-  or Google Sheets (not supported).
+  or Google Sheets (use google-sheets skill).
 ---
 
 # Google Docs Operations
@@ -18,7 +18,7 @@ description: >
 ## When NOT to use
 - `.docx` files → use docx skill
 - `.xlsx` / spreadsheets → use xlsx skill
-- Google Sheets → not supported
+- Google Sheets → use google-sheets skill
 
 ## Available tools
 

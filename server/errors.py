@@ -60,13 +60,60 @@ class AmbiguousSectionError(Exception):
 
 
 class ReadBeforeWriteError(Exception):
-    """Write tool called without prior get_google_doc."""
-    recovery = "Call get_google_doc(doc_id) first, then retry the write operation."
+    """Write tool called without prior read."""
+    recovery = "Call the corresponding get tool (get_google_doc or slides_get) first, then retry."
 
-    def __init__(self, doc_id: str):
+    def __init__(self, resource_id: str):
         super().__init__(
-            f"Must call get_google_doc(doc_id='{doc_id}') before writing. "
+            f"Must read resource '{resource_id}' before writing. "
             f"This is enforced for safety."
+        )
+
+
+class InvalidRangeError(Exception):
+    """Malformed A1 notation for Sheets range."""
+    recovery = (
+        "Use standard A1 notation: 'Sheet1!A1:C10', 'A1:B5', 'A:C' (full columns), "
+        "'1:5' (full rows), or a named range."
+    )
+
+    def __init__(self, range_str: str, reason: str = ""):
+        self.range_str = range_str
+        msg = f"Invalid range: '{range_str}'"
+        if reason:
+            msg += f" — {reason}"
+        super().__init__(msg)
+
+
+class SheetNotFoundError(Exception):
+    """Tab/sheet name not found in spreadsheet."""
+    recovery = "Call sheets_get to see available tab names, then retry with the correct name."
+
+    def __init__(self, sheet_name: str, available: list[str]):
+        self.sheet_name = sheet_name
+        self.available = available
+        super().__init__(
+            f"Sheet tab '{sheet_name}' not found. Available: {available}"
+        )
+
+
+class SlideNotFoundError(Exception):
+    """Slide index or ID not found in presentation."""
+    recovery = "Call slides_get to see the slide list, then retry with a valid slide index or ID."
+
+    def __init__(self, slide_ref: str, total: int):
+        super().__init__(
+            f"Slide '{slide_ref}' not found. Presentation has {total} slides."
+        )
+
+
+class InvalidURLError(Exception):
+    """Non-HTTP(S) URL provided (e.g. for Slides image insertion)."""
+    recovery = "Provide a publicly accessible HTTPS URL (e.g. https://example.com/image.png)."
+
+    def __init__(self, url: str):
+        super().__init__(
+            f"Invalid URL: '{url}'. Only HTTP and HTTPS URLs are accepted."
         )
 
 

@@ -1,4 +1,4 @@
-"""Google OAuth 2.0 credential management."""
+"""Google OAuth 2.0 credential management with scope validation."""
 
 import logging
 
@@ -14,11 +14,13 @@ logger = logging.getLogger("gdocs.auth")
 SCOPES = [
     "https://www.googleapis.com/auth/documents",
     "https://www.googleapis.com/auth/drive.file",
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/presentations",
 ]
 
 
 def get_credentials() -> Credentials:
-    """Load or refresh OAuth credentials."""
+    """Load, validate scopes, and refresh OAuth credentials."""
     creds = None
 
     if CREDENTIALS_FILE.exists():
@@ -31,6 +33,14 @@ def get_credentials() -> Credentials:
 
     if creds is None:
         raise AuthError("No credentials found.")
+
+    # Scope validation: ensure token covers all required scopes
+    if creds.scopes and not set(SCOPES).issubset(set(creds.scopes)):
+        missing = set(SCOPES) - set(creds.scopes)
+        raise AuthError(
+            f"Credential scopes outdated — missing: {missing}. "
+            f"Re-run: python3 -m server.auth --setup"
+        )
 
     if not creds.valid:
         if creds.refresh_token:
