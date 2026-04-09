@@ -1,7 +1,7 @@
 [project]
-name = "google-docs-cowork-plugin"
+name = "google-drive-cowork-mcp"
 version = "1.0.0"
-description = "MCP server for native Google Docs editing in Claude Cowork"
+description = "MCP server for native Google Docs, Sheets, and Slides editing in Claude Cowork"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"
@@ -17,8 +17,8 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/sashakang/google-docs-cowork-plugin"
-Issues = "https://github.com/sashakang/google-docs-cowork-plugin/issues"
+Repository = "https://github.com/sashakang/google-drive-cowork-mcp"
+Issues = "https://github.com/sashakang/google-drive-cowork-mcp/issues"
 
 [build-system]
 requires = ["setuptools>=68.0"]

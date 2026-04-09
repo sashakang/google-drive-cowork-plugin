@@ -1,4 +1,4 @@
-# google-docs-cowork-plugin
+# google-drive-cowork-mcp
 
 MCP server that lets [Claude Cowork](https://claude.ai) create and edit Google Docs, Sheets, and Slides. Runs as a local stdio process — no hosted backend.
 
@@ -63,8 +63,8 @@ Then create an **OAuth 2.0 Desktop client** (not "Web application") and note the
 A virtual environment is required (especially on macOS with Homebrew Python):
 
 ```bash
-git clone https://github.com/sashakang/google-docs-cowork-plugin.git
-cd google-docs-cowork-plugin
+git clone https://github.com/sashakang/google-drive-cowork-mcp.git
+cd google-drive-cowork-mcp
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
@@ -113,8 +113,8 @@ Add the MCP server to your Claude desktop config.
   "mcpServers": {
     "google-docs": {
       "command": "bash",
-      "args": ["-c", "source /absolute/path/to/google-docs-cowork-plugin/.venv/bin/activate && python3 -m server.main"],
-      "cwd": "/absolute/path/to/google-docs-cowork-plugin"
+      "args": ["-c", "source /absolute/path/to/google-drive-cowork-mcp/.venv/bin/activate && python3 -m server.main"],
+      "cwd": "/absolute/path/to/google-drive-cowork-mcp"
     }
   }
 }
