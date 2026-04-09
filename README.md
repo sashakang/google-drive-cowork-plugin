@@ -1,4 +1,4 @@
-# google-docs-mcp
+# google-docs-cowork-plugin
 
 MCP server that lets [Claude Cowork](https://claude.ai) create and edit native Google Docs. Runs as a local stdio process — no hosted backend.
 
@@ -27,8 +27,8 @@ Enable the **Google Docs API** and **Google Drive API** in [GCP Console](https:/
 ### 2. Install
 
 ```bash
-git clone https://github.com/sashakang/google-docs-mcp.git
-cd google-docs-mcp
+git clone https://github.com/sashakang/google-docs-cowork-plugin.git
+cd google-docs-cowork-plugin
 pip install -e .
 ```
 
@@ -48,9 +48,25 @@ python3 -m server.auth --setup
 
 This opens a browser for OAuth consent. A refresh token is saved to `~/.config/gdocs-mcp/credentials.json` (mode 0600).
 
-### 4. Use as a Cowork plugin
+### 4. Install as a Cowork plugin
 
-Copy or symlink this directory into your Cowork plugins folder and restart Cowork. The `.mcp.json` and `.claude-plugin/plugin.json` handle registration automatically.
+Add this to your Claude desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS, `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
+
+```json
+{
+  "mcpServers": {
+    "google-docs": {
+      "command": "python3",
+      "args": ["-m", "server.main"],
+      "cwd": "/absolute/path/to/google-docs-cowork-plugin"
+    }
+  }
+}
+```
+
+Replace the `cwd` path with wherever you cloned the repo. Restart Claude for changes to take effect.
+
+Alternatively, copy or symlink the repo directory into your Cowork plugins folder — the `.mcp.json` and `.claude-plugin/plugin.json` handle registration automatically.
 
 ## Architecture
 

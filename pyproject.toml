@@ -1,5 +1,5 @@
 [project]
-name = "google-docs-mcp"
+name = "google-docs-cowork-plugin"
 version = "1.0.0"
 description = "MCP server for native Google Docs editing in Claude Cowork"
 readme = "README.md"
@@ -17,8 +17,8 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/sashakang/google-docs-mcp"
-Issues = "https://github.com/sashakang/google-docs-mcp/issues"
+Repository = "https://github.com/sashakang/google-docs-cowork-plugin"
+Issues = "https://github.com/sashakang/google-docs-cowork-plugin/issues"
 
 [build-system]
 requires = ["setuptools>=68.0"]
