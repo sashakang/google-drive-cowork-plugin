@@ -1,11 +1,10 @@
-"""MCP stdio server for Google Workspace operations (Docs + Sheets)."""
+"""MCP stdio server for Google Workspace operations (Docs + Sheets + Slides)."""
 
 from __future__ import annotations
 
 import asyncio
 import json
 import logging
-import time
 from datetime import datetime, timezone
 from typing import Any
 
@@ -16,6 +15,7 @@ from mcp.types import Tool, TextContent
 from .docs_api import DocsClient
 from .drive_api import DriveClient
 from .sheets_api import SheetsClient
+from .slides_api import SlidesClient
 from .errors import (
     AuthError, ConfigError, NotFoundError, PermissionDeniedError,
     SectionNotFoundError, AmbiguousSectionError, ReadBeforeWriteError,
@@ -24,6 +24,7 @@ from .errors import (
 from .paths import AUDIT_LOG
 from .tools.docs import DOCS_TOOLS, DocsContext, docs_dispatch
 from .tools.sheets import SHEETS_TOOLS, sheets_dispatch
+from .tools.slides import SLIDES_TOOLS, SlidesContext, slides_dispatch
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("gdocs-mcp")
@@ -34,6 +35,7 @@ app = Server("google-workspace")
 _docs: DocsClient | None = None
 _drive: DriveClient | None = None
 _sheets: SheetsClient | None = None
+_slides: SlidesClient | None = None
 
 
 def docs() -> DocsClient:
@@ -57,10 +59,17 @@ def sheets() -> SheetsClient:
     return _sheets
 
 
+def slides() -> SlidesClient:
+    global _slides
+    if _slides is None:
+        _slides = SlidesClient()
+    return _slides
+
+
 # -- Shared state -------------------------------------------------------
 
-# Docs-specific context (caches, lock, read-before-write enforcement)
 _docs_ctx = DocsContext()
+_slides_ctx = SlidesContext()
 
 # Timeout for Google API calls (seconds)
 TOOL_TIMEOUT = 60
@@ -75,9 +84,10 @@ _KNOWN_ERRORS = (
 # Tool name sets for routing
 _DOCS_NAMES = frozenset(t.name for t in DOCS_TOOLS)
 _SHEETS_NAMES = frozenset(t.name for t in SHEETS_TOOLS)
+_SLIDES_NAMES = frozenset(t.name for t in SLIDES_TOOLS)
 
 # Combined tool list
-ALL_TOOLS: list[Tool] = DOCS_TOOLS + SHEETS_TOOLS
+ALL_TOOLS: list[Tool] = DOCS_TOOLS + SHEETS_TOOLS + SLIDES_TOOLS
 
 
 def _audit(tool: str, args: dict, result: dict):
@@ -87,7 +97,12 @@ def _audit(tool: str, args: dict, result: dict):
             f.write(json.dumps({
                 "ts": datetime.now(timezone.utc).isoformat(),
                 "tool": tool,
-                "doc_id": args.get("doc_id", args.get("spreadsheet_id", args.get("documentId", ""))),
+                "doc_id": args.get(
+                    "doc_id",
+                    args.get("spreadsheet_id",
+                             args.get("presentation_id",
+                                      args.get("documentId", ""))),
+                ),
                 "status": result.get("status", "ok"),
                 "error_type": result.get("error_type"),
             }) + "\n")
@@ -104,9 +119,11 @@ async def list_tools() -> list[Tool]:
 
 @app.call_tool()
 async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
-    # Prune expired cache entries (thread-safe via DocsContext lock)
+    # Prune expired cache entries (thread-safe)
     with _docs_ctx.lock:
         _docs_ctx.prune()
+    with _slides_ctx.lock:
+        _slides_ctx.prune()
     try:
         result = await asyncio.wait_for(
             asyncio.to_thread(_dispatch, name, arguments),
@@ -153,6 +170,9 @@ def _dispatch(name: str, args: dict) -> dict:
 
     if name in _SHEETS_NAMES:
         return sheets_dispatch(name, args, sheets_client=sheets())
+
+    if name in _SLIDES_NAMES:
+        return slides_dispatch(name, args, slides_client=slides(), ctx=_slides_ctx)
 
     return {"status": "error", "message": f"Unknown tool: {name}"}
 
