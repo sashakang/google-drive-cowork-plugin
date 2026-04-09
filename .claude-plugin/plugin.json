@@ -1,0 +1,7 @@
+{
+  "name": "google-docs",
+  "version": "1.0.0",
+  "description": "Create and edit native Google Docs from Claude Cowork",
+  "author": { "name": "Sasha Kang" },
+  "keywords": ["google-docs", "google-drive", "documents"]
+}
