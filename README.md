@@ -1,4 +1,4 @@
-# google-drive-cowork-mcp
+# google-drive-cowork-plugin
 
 MCP server that lets [Claude Cowork](https://claude.ai) create and edit Google Docs, Sheets, and Slides. Runs as a local stdio process — no hosted backend.
 
@@ -43,91 +43,22 @@ MCP server that lets [Claude Cowork](https://claude.ai) create and edit Google D
 | `slides_update` | Apply batchUpdate requests |
 | `slides_insert_image` | Insert image from URL |
 
-## Setup
-
-### 1. GCP project
-
-Enable these four APIs in [GCP Console → APIs & Services → Library](https://console.cloud.google.com/apis/library):
-
-- **Google Docs API**
-- **Google Drive API**
-- **Google Sheets API**
-- **Google Slides API**
-
-Then create an **OAuth 2.0 Desktop client** (not "Web application") and note the client ID and secret. See [CONNECTORS.md](CONNECTORS.md) for the full walkthrough.
-
-> **Important:** You must select **Desktop app** as the application type. "Web application" will not work with the local OAuth flow.
-
-### 2. Install
-
-A virtual environment is required (especially on macOS with Homebrew Python):
+## Quick start
 
 ```bash
-git clone https://github.com/sashakang/google-drive-cowork-mcp.git
-cd google-drive-cowork-mcp
+git clone https://github.com/sashakang/google-drive-cowork-plugin.git
+cd google-drive-cowork-plugin
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
 ```
 
-### 3. Authenticate
-
-```bash
-mkdir -p ~/.config/gdocs-mcp
-```
-
-Create `~/.config/gdocs-mcp/client_secret.json` with your Desktop client credentials:
-
-```json
-{
-  "installed": {
-    "client_id": "YOUR_CLIENT_ID.apps.googleusercontent.com",
-    "client_secret": "YOUR_CLIENT_SECRET",
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
-    "redirect_uris": ["http://localhost"]
-  }
-}
-```
-
-> **Note:** The top-level key must be `"installed"` (not `"web"`).
-
-Then run the auth setup (with the venv active):
-
-```bash
-source .venv/bin/activate
-python3 -m server.auth --setup
-```
-
-This opens a browser for OAuth consent. A refresh token is saved to `~/.config/gdocs-mcp/credentials.json` (mode 0600).
-
-### 4. Connect to Claude
-
-Add the MCP server to your Claude desktop config.
-
-**macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
-
-```json
-{
-  "mcpServers": {
-    "google-docs": {
-      "command": "bash",
-      "args": ["-c", "source /absolute/path/to/google-drive-cowork-mcp/.venv/bin/activate && python3 -m server.main"],
-      "cwd": "/absolute/path/to/google-drive-cowork-mcp"
-    }
-  }
-}
-```
-
-Replace the paths with wherever you cloned the repo. The `bash -c` wrapper is needed to activate the venv before starting the server. Restart Claude for changes to take effect.
-
-> **Note:** This is a local MCP server, not a marketplace plugin. It connects to Claude via stdio transport and works with both Claude Desktop and Claude Code.
+Then follow [CONNECTORS.md](CONNECTORS.md) to set up GCP credentials and connect to Claude.
 
 ## Architecture
 
 ```
-Claude Cowork
+Claude Cowork / Claude Code
   └─ MCP (stdio transport)
        └─ python3 -m server.main
             ├─ Google Docs API v1    (document operations)
@@ -147,7 +78,7 @@ All state lives in `~/.config/gdocs-mcp/`:
 
 ## Safety
 
-- **Read-before-write** — all write tools require a prior `get_google_doc` call (server-enforced, 5 min window)
+- **Read-before-write** — all write tools require a prior read call (server-enforced, 5 min window)
 - **Prompt injection mitigation** — returned doc content is prefixed with a machine-readable warning banner
 - **Folder and domain allowlists** — restrict where docs can be moved and who they can be shared with
 - **Create deduplication** — same title within 30s returns the cached doc
@@ -180,17 +111,20 @@ Empty arrays (or no file) means allow all.
 
 **"Server disconnected" in Claude:**
 Check the MCP log at `~/Library/Logs/Claude/mcp-server-google-docs.log`. Common causes:
-- Wrong Python (must use venv): use the `bash -c` config shown above
+- Wrong Python (must use venv): use the `bash -c` config shown in CONNECTORS.md
 - `TypeError: Server.run() missing ... initialization_options`: update `mcp` package in venv
 
 **"Credential scopes outdated":**
-The server now needs 4 scopes (docs, drive, sheets, presentations). Re-run `python3 -m server.auth --setup` to re-authorize.
+The server needs 4 scopes (docs, drive, sheets, presentations). Re-run `python3 -m server.auth --setup` to re-authorize.
 
 **"redirect_uri_mismatch":**
 Your OAuth client must be a **Desktop** type (not Web). The `redirect_uris` should be `["http://localhost"]`.
 
 **"externally-managed-environment":**
 You're using Homebrew Python without a venv. Activate the venv first: `source .venv/bin/activate`.
+
+**Auth flow hangs / no browser opens:**
+The auth command starts a local HTTP server and waits for a callback. If the browser didn't open automatically, copy the URL from the terminal and open it manually. You'll see "Waiting for browser authorization..." in the terminal while it waits.
 
 ## Project structure
 
