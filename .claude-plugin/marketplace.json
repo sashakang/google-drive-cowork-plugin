@@ -1,0 +1,21 @@
+{
+  "name": "sashakang",
+  "owner": {
+    "name": "Sasha Kang"
+  },
+  "metadata": {
+    "description": "Google Workspace plugins by Sasha Kang",
+    "homepage": "https://github.com/sashakang/google-drive-cowork-plugin"
+  },
+  "plugins": [
+    {
+      "name": "google-drive-cowork-mcp",
+      "version": "1.0.0",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/sashakang/google-drive-cowork-plugin.git"
+      },
+      "description": "Create and edit native Google Docs, Sheets, and Slides — 22 tools for the full Google Workspace"
+    }
+  ]
+}
