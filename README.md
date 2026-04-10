@@ -43,7 +43,22 @@ MCP server that lets [Claude Cowork](https://claude.ai) create and edit Google D
 | `slides_update` | Apply batchUpdate requests |
 | `slides_insert_image` | Insert image from URL |
 
-## Quick start
+## Install
+
+Two paths, same plugin. Pick the one that matches how you use Claude.
+
+### Path 1: Claude Code
+
+```bash
+claude plugin marketplace add https://github.com/sashakang/google-drive-cowork-plugin
+claude plugin install google-drive-cowork-mcp
+```
+
+Then follow [CONNECTORS.md](CONNECTORS.md) to set up GCP credentials and authenticate.
+
+### Path 2: Cowork (via Claude Code)
+
+Cowork can't install MCP plugins directly. Use Claude Code to set it up once, then Cowork picks it up on restart.
 
 ```bash
 git clone https://github.com/sashakang/google-drive-cowork-plugin.git
@@ -53,7 +68,7 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-Then follow [CONNECTORS.md](CONNECTORS.md) to set up GCP credentials and connect to Claude.
+Then follow [CONNECTORS.md](CONNECTORS.md) to set up GCP credentials, authenticate, and add the MCP server to your Claude Desktop config. Restart Claude — the 22 tools will be available in Cowork.
 
 ## Architecture
 
