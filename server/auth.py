@@ -1,6 +1,8 @@
 """Google OAuth 2.0 credential management with scope validation."""
 
+import json
 import logging
+import os
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -64,6 +66,23 @@ def setup_credentials():
     if not CLIENT_SECRET.exists():
         raise FileNotFoundError(f"Place client_secret.json in {CONFIG_DIR}")
 
+    # Validate client secret type — must be Desktop ("installed"), not Web
+    try:
+        secret_data = json.loads(CLIENT_SECRET.read_text())
+    except (json.JSONDecodeError, OSError) as e:
+        raise AuthError(f"Cannot read client_secret.json: {e}")
+    if "web" in secret_data and "installed" not in secret_data:
+        raise AuthError(
+            'client_secret.json has type "web" — you need a "Desktop app" '
+            "OAuth client. Re-create the credential in GCP Console with "
+            'Application type = "Desktop app" and download the new JSON.'
+        )
+    if "installed" not in secret_data:
+        raise AuthError(
+            'client_secret.json is missing the "installed" key. '
+            "Download a Desktop OAuth client JSON from GCP Console."
+        )
+
     # Back up existing credentials
     if CREDENTIALS_FILE.exists():
         backup = CREDENTIALS_FILE.with_suffix(".json.bak")
@@ -77,11 +96,23 @@ def setup_credentials():
 
 
 def _save_credentials(creds: Credentials):
-    CREDENTIALS_FILE.write_text(creds.to_json())
+    """Write credentials atomically with restricted permissions from the start."""
+    data = creds.to_json()
     try:
-        CREDENTIALS_FILE.chmod(0o600)
+        fd = os.open(
+            str(CREDENTIALS_FILE),
+            os.O_WRONLY | os.O_CREAT | os.O_TRUNC,
+            0o600,
+        )
+        with os.fdopen(fd, "w") as f:
+            f.write(data)
     except OSError as e:
-        logger.warning(f"Failed to set file permissions: {e}")
+        logger.warning(f"Secure write failed, falling back: {e}")
+        CREDENTIALS_FILE.write_text(data)
+        try:
+            CREDENTIALS_FILE.chmod(0o600)
+        except OSError:
+            pass
 
 
 if __name__ == "__main__":

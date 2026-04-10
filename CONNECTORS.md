@@ -56,6 +56,10 @@ The file should look like this (the top-level key **must** be `"installed"`, not
 
 ## Step 4: Install dependencies
 
+> **Marketplace users:** Skip this step — `setup.sh` handles venv creation automatically on first launch.
+
+For manual/development installs:
+
 ```bash
 cd /path/to/google-drive-cowork-plugin
 python3 -m venv .venv
@@ -65,7 +69,7 @@ pip install -e .
 
 ## Step 5: Authenticate
 
-With the venv active:
+With the venv active (marketplace users: `source /path/to/plugin/.venv/bin/activate` after the first launch bootstraps it):
 
 ```bash
 python3 -m server.auth --setup
@@ -84,6 +88,19 @@ If the browser doesn't open automatically, copy the URL from the terminal and op
 
 ## Step 6: Connect to Claude
 
+You have two options: marketplace install (recommended) or manual config.
+
+### Option A: Marketplace install (recommended)
+
+```bash
+claude plugin marketplace add https://github.com/sashakang/google-drive-cowork-plugin.git
+claude plugin install google-drive-cowork-mcp
+```
+
+The plugin auto-bootstraps its venv on first launch — no manual `pip install` needed beyond Steps 1-3 and 5.
+
+### Option B: Manual config
+
 Add the MCP server to your Claude Desktop config:
 
 **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
@@ -96,18 +113,18 @@ If the file already has content, add the `"google-drive"` key inside the existin
   "mcpServers": {
     "google-drive": {
       "command": "bash",
-      "args": ["-c", "source /absolute/path/to/google-drive-cowork-plugin/.venv/bin/activate && python3 -m server.main"],
+      "args": ["/absolute/path/to/google-drive-cowork-plugin/setup.sh"],
       "cwd": "/absolute/path/to/google-drive-cowork-plugin"
     }
   }
 }
 ```
 
-Replace both paths with wherever you cloned the repo. The `bash -c` wrapper is needed to activate the venv before starting the server.
+Replace the path with wherever you cloned the repo. The `setup.sh` script creates the venv and installs dependencies automatically on first run.
 
 **Restart Claude** for changes to take effect.
 
-> This is a local MCP server, not a marketplace plugin. It connects to Claude via stdio transport and works with both Claude Desktop (Cowork) and Claude Code.
+> This plugin works as both a marketplace plugin and a local MCP server. It connects via stdio transport and works with Claude Desktop (Cowork) and Claude Code.
 
 ## Step 7 (optional): Configure restrictions
 
@@ -138,3 +155,4 @@ Create `~/.config/gdocs-mcp/config.json`:
 | API not enabled error | Enable the missing API in GCP Console (step 1) |
 | `redirect_uri_mismatch` | OAuth client must be **Desktop** type, not Web |
 | Auth flow hangs silently | Copy the URL from terminal and open it manually in your browser |
+| `ModuleNotFoundError` / venv not found | Delete `.venv/` and restart — `setup.sh` will recreate it. Or run Step 4 manually. |

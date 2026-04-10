@@ -17,8 +17,8 @@ description: >
 - Manage tabs (add, rename, delete, freeze)
 
 ## When NOT to use
-- `.xlsx` files → use xlsx skill
-- Google Docs → use google-docs skill
+- `.xlsx` files → use the built-in Cowork **xlsx** skill (not part of this plugin)
+- Google Docs → use the **google-docs** skill (included in this plugin)
 - `.csv` files that don't need Sheets features → handle locally
 
 ## Available tools

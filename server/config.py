@@ -1,9 +1,12 @@
 """Server-side policy enforcement with TTL-cached config."""
 
 import json
+import logging
 import time
 
 from .paths import CONFIG_FILE
+
+logger = logging.getLogger("gdocs.config")
 
 _config_cache: dict | None = None
 _config_load_time: float = 0
@@ -15,7 +18,16 @@ def load_config() -> dict:
     now = time.time()
     if _config_cache is None or (now - _config_load_time) > _CONFIG_TTL:
         if CONFIG_FILE.exists():
-            _config_cache = json.loads(CONFIG_FILE.read_text())
+            try:
+                _config_cache = json.loads(CONFIG_FILE.read_text())
+            except (json.JSONDecodeError, OSError) as e:
+                logger.warning(
+                    f"Failed to parse {CONFIG_FILE}, using defaults: {e}"
+                )
+                _config_cache = {
+                    "allowed_folder_ids": [],
+                    "allowed_sharing_domains": [],
+                }
         else:
             _config_cache = {
                 "allowed_folder_ids": [],       # empty = allow all

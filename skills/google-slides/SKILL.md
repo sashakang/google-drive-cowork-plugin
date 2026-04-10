@@ -17,9 +17,9 @@ description: >
 - Read slide content for summarization or analysis
 
 ## When NOT to use
-- `.pptx` files → use pptx skill
-- Google Docs → use google-docs skill
-- Google Sheets → use google-sheets skill
+- `.pptx` files → use the built-in Cowork **pptx** skill (not part of this plugin)
+- Google Docs → use the **google-docs** skill (included in this plugin)
+- Google Sheets → use the **google-sheets** skill (included in this plugin)
 
 ## Available tools
 

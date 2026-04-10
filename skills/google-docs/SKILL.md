@@ -16,9 +16,9 @@ description: >
 - Convert meeting notes, reports, or notes into docs
 
 ## When NOT to use
-- `.docx` files → use docx skill
-- `.xlsx` / spreadsheets → use xlsx skill
-- Google Sheets → use google-sheets skill
+- `.docx` files → use the built-in Cowork **docx** skill (not part of this plugin)
+- `.xlsx` / spreadsheets → use the built-in Cowork **xlsx** skill (not part of this plugin)
+- Google Sheets → use the **google-sheets** skill (included in this plugin)
 
 ## Available tools
 
